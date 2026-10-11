@@ -12,6 +12,59 @@ from unittest.mock import patch
 import radar
 
 
+class JsonHelpersTests(unittest.TestCase):
+    def test_read_json_returns_default_when_file_is_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            default = {"fallback": True}
+            path = Path(tmp) / "missing.json"
+
+            self.assertEqual(radar.read_json(path, default), default)
+
+    def test_write_json_creates_missing_parent_folders(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "nested" / "folders" / "data.json"
+
+            radar.write_json(path, {"ok": True})
+
+            self.assertTrue(path.parent.is_dir())
+            self.assertTrue(path.is_file())
+
+    def test_write_json_indents_sorts_keys_and_ends_with_newline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data.json"
+
+            radar.write_json(path, {"z": 2, "a": 1})
+
+            self.assertEqual(path.read_text(encoding="utf-8"), '{\n  "a": 1,\n  "z": 2\n}\n')
+
+    def test_write_json_compact_omits_separator_spaces(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data.json"
+
+            radar.write_json(path, {"z": [1, 2], "a": 3}, compact=True)
+
+            self.assertEqual(path.read_text(encoding="utf-8"), '{"a":3,"z":[1,2]}\n')
+
+    def test_write_json_preserves_non_ascii_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data.json"
+
+            radar.write_json(path, {"name": "Café"})
+
+            contents = path.read_text(encoding="utf-8")
+            self.assertIn('"Café"', contents)
+            self.assertNotIn("\\u00e9", contents)
+
+    def test_write_json_round_trip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data.json"
+            payload = {"items": [1, "two"], "enabled": True}
+
+            radar.write_json(path, payload)
+
+            self.assertEqual(radar.read_json(path, None), payload)
+
+
 def issue(**overrides):
     base = {
         "number": 1,

@@ -58,11 +58,12 @@ class JsonHelpersTests(unittest.TestCase):
     def test_write_json_round_trip(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "data.json"
-            payload = {"items": [1, "two"], "enabled": True}
+            payload = {"items": [1, "two"], "enabled": True, "name": "Café"}
 
-            radar.write_json(path, payload)
-
-            self.assertEqual(radar.read_json(path, None), payload)
+            for compact in (False, True):
+                with self.subTest(compact=compact):
+                    radar.write_json(path, payload, compact=compact)
+                    self.assertEqual(radar.read_json(path, None), payload)
 
 
 def issue(**overrides):
